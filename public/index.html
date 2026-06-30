@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>רשימת ליקוט · משנת יוסף</title>
+<style>
+:root{--bg:#f4f3f8;--card:#fff;--ink:#241b3a;--muted:#7a7390;--accent:#4f2d8f;--accent2:#6c3fc5;--done:#16a34a;--savta:#b91c1c;--line:#ece8f4;}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px 90px}
+.top{position:sticky;top:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:16px 18px;border-radius:0 0 20px 20px;box-shadow:0 6px 18px rgba(79,45,143,.25);z-index:10}
+.top h1{margin:0 0 4px;font-size:20px;padding-inline-end:96px}
+.top .meta{font-size:13px;opacity:.92;line-height:1.5}
+.bar{height:8px;background:rgba(255,255,255,.25);border-radius:99px;margin-top:12px;overflow:hidden}
+.bar>i{display:block;height:100%;background:#fff;width:0;transition:width .3s}
+.barlbl{font-size:12px;opacity:.92;margin-top:5px}
+.filters{display:flex;gap:8px;margin:14px 0}
+.filters button{flex:1;padding:9px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font-size:14px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
+.filters button.on{background:var(--accent);color:#fff}
+.cat{margin:14px 0 8px;font-weight:700;font-size:15px;color:var(--accent);display:flex;justify-content:space-between;align-items:center}
+.cat .c{font-size:12px;color:var(--muted);font-weight:500}
+.item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.05);cursor:pointer;min-height:52px;transition:opacity .2s}
+.item .box{width:26px;height:26px;border-radius:8px;border:2px solid #d6cfe8;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;transition:.15s}
+.item.done .box{background:var(--done);border-color:var(--done)}
+.item.done .name{text-decoration:line-through;color:var(--muted)}
+.item.done{opacity:.6}
+.name{flex:1;font-size:15px;line-height:1.35}
+.qty{font-weight:700;font-size:15px;white-space:nowrap}
+.split{font-size:12px;color:var(--muted);margin-top:2px}
+.split b{color:var(--ink)}
+.tag{display:inline-block;background:#fdecec;color:var(--savta);font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-inline-start:6px}
+.atag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+.done-banner{text-align:center;background:#dcfce7;color:#166534;font-weight:700;border-radius:14px;padding:16px;margin:14px 0}
+.card{background:var(--card);border-radius:18px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.07);margin-top:30px}
+.card h2{margin:0 0 6px;color:var(--accent)}
+.card p{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.5}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+input{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;font-size:16px;background:#fbfaff}
+input:focus{outline:none;border-color:var(--accent2)}
+.btn{width:100%;margin-top:18px;padding:13px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn.sec{background:#efeaf8;color:var(--accent)}
+.err{background:#fdecec;color:var(--savta);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:14px}
+.note{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.5;text-align:center}
+.stnote{background:#eef2ff;color:#3730a3;border-radius:12px;padding:10px 13px;font-size:12.5px;line-height:1.5;margin-top:12px}
+.accbar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.acc{background:#efeaf8;color:var(--accent);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.acc button{border:0;background:none;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:0}
+.addacc{margin-top:16px;text-align:center}
+.addacc a{color:var(--accent);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer}
+.warn{background:#fef9c3;color:#854d0e;border-radius:10px;padding:10px 12px;font-size:13px;margin:14px 0}
+.loading{text-align:center;color:var(--muted);padding:60px 0;font-size:15px}
+.legal{margin:34px 4px 0;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px;line-height:1.6;text-align:center}
+.legal p{margin:0 0 7px}
+.legal .lishkod{margin-top:12px;font-size:12.5px;color:var(--ink)}
+.legal a{color:var(--accent);font-weight:700;text-decoration:none}
+.printbtn{position:absolute;top:14px;inset-inline-end:16px;background:rgba(255,255,255,.22);color:#fff;border:0;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer}
+.printbtn:hover{background:rgba(255,255,255,.34)}
+.printhead{display:none}
+@media print{
+  @page{margin:11mm}
+  body{background:#fff;color:#000}
+  .wrap{max-width:100%;padding:0}
+  .top,.filters,.accbar,.addacc,#addcard,.stnote,.legal,.warn,#banner,.printbtn{display:none!important}
+  .printhead{display:block;text-align:center;margin:0 0 10px;border-bottom:2px solid #000;padding-bottom:8px}
+  .printhead h1{font-size:19px;margin:0 0 3px}
+  .printhead .pmeta{font-size:12.5px;color:#000}
+  #list{column-count:2;column-gap:20px}
+  .cat{color:#000;break-inside:avoid;border-bottom:1px solid #000;padding-bottom:2px;margin:9px 0 5px;font-size:13.5px}
+  .cat .c{display:none}
+  .item{display:flex;break-inside:avoid;box-shadow:none;border:0;border-bottom:1px dotted #c9c9c9;border-radius:0;padding:4px 1px;margin:0;background:#fff;min-height:0;opacity:1!important}
+  .item .box{width:15px;height:15px;border:1.3px solid #000;background:#fff!important;color:transparent!important;border-radius:3px}
+  .item.done .name{text-decoration:none;color:#000}
+  .name{color:#000;font-size:12.5px}
+  .qty{color:#000;font-size:12.5px;font-weight:700}
+  .split{color:#000}.split b{color:#000!important}
+  .atag,.tag{background:#fff!important;color:#000!important;border:1px solid #777;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="app"><div class="loading">טוען…</div></div>
+  <div class="legal">
+    <p>יישומון זה איננו מפותח על ידי "משנת יוסף" ואינו באחריותה.</p>
+    <p>היישומון מיועד לליקוט המוצרים בלבד. הזמנה מתבצעת דרך <a href="https://mishnatyosef.org/login" target="_blank" rel="noopener">אתר משנת יוסף</a> הרשמי.</p>
+    <p>היישום אינו חשוף לפרטי אמצעי התשלום או לפרטים אישיים אחרים.</p>
+    <p>היישומון פותח ככלי עזר להקלת תהליך הליקוט במשנת יוסף. המפתח אינו נושא באחריות כלשהי, הלכתית או משפטית, לתוצאות השימוש ביישומון.</p>
+    <p class="lishkod">אם סיימתם את הקניות ומעניין אתכם ללמוד קצת תורה: <a href="https://lishkod.app" target="_blank" rel="noopener">lishkod.app</a></p>
+  </div>
+</div>
+
+<script>
+"use strict";
+const API = "https://v2.mishnatyosef.org/api";
+const LS_ACCOUNTS = "mlk_accounts";
+const HEB_DAYS = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+
+/* ----------------------- account storage (browser only) ---------------------- */
+function loadAccounts(){ try{ return JSON.parse(localStorage.getItem(LS_ACCOUNTS)||"[]"); }catch(e){ return []; } }
+function saveAccounts(a){ localStorage.setItem(LS_ACCOUNTS, JSON.stringify(a.map(x=>({email:x.email,name:x.name,token:x.token})))); }
+
+let accounts = [];
+
+/* ------------------------------ mishnat yosef API ---------------------------- */
+function authHeaders(token){ return { "Authorization":"Bearer "+token, "Accept":"application/json" }; }
+
+async function apiLogin(email, password){
+  try{
+    const r = await fetch(API+"/login", {method:"POST", headers:{"Content-Type":"application/json","Accept":"application/json"}, body:JSON.stringify({email,password})});
+    if(!r.ok) return null;
+    const d = await r.json().catch(()=>null);
+    if(!d) return null;
+    const token = d.token || d.access_token || (d.data && d.data.token);
+    if(!token) return null;
+    const name = (d.user && (d.user.name || d.user.full_name)) || d.name || null;
+    return { token, name };
+  }catch(e){ return null; }
+}
+
+// Refresh is destructive (blacklists the old token) — only call reactively on 401.
+async function apiRefresh(token){
+  try{
+    const r = await fetch(API+"/refresh", {method:"POST", headers:authHeaders(token)});
+    if(!r.ok) return null;
+    let nt = null;
+    const body = await r.json().catch(()=>null);
+    if(body) nt = body.token || body.access_token || (body.data && body.data.token) || (typeof body==="string"?body:null);
+    if(!nt){ const h = r.headers.get("authorization"); if(h) nt = h.replace(/^bearer\s+/i,""); }
+    return nt;
+  }catch(e){ return null; }
+}
+
+// Authed GET that retries ONCE with a refreshed token on 401.
+async function apiGet(acc, path){
+  let r = await fetch(API+path, {headers:authHeaders(acc.token)});
+  if(r.status === 401){
+    const nt = await apiRefresh(acc.token);
+    if(nt){ acc.token = nt; acc._refreshed = true; r = await fetch(API+path, {headers:authHeaders(acc.token)}); }
+  }
+  return r;
+}
+
+// returns parsed order | null | "AUTH"
+async function fetchNearestOrder(acc){
+  const lr = await apiGet(acc, "/orders");
+  if(lr.status === 401) return "AUTH";
+  if(!lr.ok) return null;
+  const list = await lr.json().catch(()=>null);
+  if(!list || !Array.isArray(list.data) || !list.data.length) return null;
+
+  const cutoff = Date.now() - 24*3600*1000;
+  let best = null;
+  for(const o of list.data){
+    const sb = o.sale && (o.sale.supply_begin || o.sale.supply_end || o.sale.begin);
+    const t = sb ? Date.parse(String(sb).replace(" ","T")) : NaN;
+    if(isNaN(t) || t < cutoff) continue;
+    if(!best || t < best.t) best = {o,t};
+  }
+  if(!best) best = {o:list.data[0]};
+
+  const dr = await apiGet(acc, "/orders/"+best.o.id);
+  if(dr.status === 401) return "AUTH";
+  if(!dr.ok) return null;
+  const detail = await dr.json().catch(()=>null);
+  if(!detail) return null;
+  const parsed = parseOrder(detail);
+  const station = await fetchStation(acc);
+  if(station){ if(station.location) parsed.pickup.location = station.location; if(station.note) parsed.pickup.note = station.note; }
+  return parsed;
+}
+
+// station address lives in profile; read ONLY the station object, never the PII around it
+async function fetchStation(acc){
+  try{
+    const r = await apiGet(acc, "/profile");
+    if(!r.ok) return null;
+    const p = await r.json();
+    const s = p.site || p.station || (p.user && p.user.site) || {};
+    const parts = [s.name, s.address, s.location].filter(x=>x && String(x).trim());
+    return { location: parts.length ? [...new Set(parts.map(x=>String(x).trim()))].join(", ") : null,
+             note: s.note && String(s.note).trim() ? String(s.note).trim() : null };
+  }catch(e){ return null; }
+}
+
+function parseOrder(detail){
+  const sale = detail.sale || {};
+  const products = (detail.order && detail.order.products) || [];
+  const items = products.filter(p=>!p.billing_product).map(p=>{
+    const byWeight = Number(p.units_type)===10 && Number(p.units)>0;
+    return { name: cleanName(p.full_name), attr: p.attribute_name||null, qty: Number(p.amount)||1, weight: byWeight?Number(p.units):null };
+  });
+  const supply = sale.supply_begin || sale.begin || null;
+  return {
+    saleName: cleanName(sale.special_msg || sale.msg || "ההזמנה הקרובה"),
+    pickup: {
+      dateRaw: supply,
+      date: supply ? fmtDate(supply) : "",
+      day: supply ? HEB_DAYS[new Date(String(supply).replace(" ","T")).getDay()] : "",
+      time: fmtTime(sale.general_start, sale.general_end),
+      location: extractLocation(sale, detail),
+    },
+    items,
+  };
+}
+function extractLocation(sale, detail){
+  const cand = [sale.site&&sale.site.name, sale.site&&sale.site.address, sale.location, sale.address, detail.site&&detail.site.name];
+  for(const c of cand) if(c && String(c).trim()) return String(c).trim();
+  return "";
+}
+
+/* ------------------------------- merge / categorize -------------------------- */
+function normName(n){ return String(n||"").replace(/\{[^}]*\}/g,"").replace(/\[[^\]]*\]/g,"").replace(/\([^)]*\)/g,"").replace(/\s+/g," ").trim(); }
+function cleanName(n){ return String(n||"").replace(/\s+/g," ").trim(); }
+
+function mergeOrders(results){
+  const map = new Map();
+  let pickup = null, saleName = "";
+  for(const {accName, order} of results){
+    if(!pickup && order.pickup && order.pickup.date) pickup = order.pickup;
+    if(!saleName && order.saleName) saleName = order.saleName;
+    for(const it of order.items){
+      const key = normName(it.name).toLowerCase() || it.name.toLowerCase();
+      let row = map.get(key);
+      if(!row){ row = {name:it.name, attr:it.attr, weight:it.weight, perAcc:{}, total:0}; map.set(key,row); }
+      row.perAcc[accName] = (row.perAcc[accName]||0) + it.qty;
+      row.total += it.qty;
+      if(it.weight) row.weight = it.weight;
+      if(it.name.length > row.name.length) row.name = it.name;
+    }
+  }
+  const items = [...map.values()];
+  return { pickup, saleName, cats: categorize(items), multi: results.length>1, accNames: results.map(r=>r.accName), count: items.length };
+}
+
+const CATEGORIES = [
+  ["🥦 ירקות ועלים", ["קישוא","סלק","חסה","סלרי","בצל","גזר","עגבני","מלפפון","פלפל","בטטה","תפוח אדמה","כרוב","פטרי","בזיליקום","פטרוזיל","כוסבר","שום","דלעת","חציל","צנון","תרד","כרישה","כרובית","ברוקולי"]],
+  ["🍎 פירות", ["תפוח","בננה","ענב","משמש","שזיף","אפרסק","נקטרינ","אגס","תות","מלון","אבטיח","תפוז","קלמנט","לימון","רימון","מנגו","אבוקדו","תמר","אגוז","שקד"]],
+  ["🥛 מוצרי חלב וביצים", ["יוגורט","חלב","גבינ","קוטג","שמנת","חמא","ביצי","לבן","תנובה","טרה"]],
+  ["🍞 מאפים ולחם", ["לחם","פיתות","לחמני","חלה","באגט","קרואסון","עוגי","עוגה","מאפה"]],
+  ["🥫 מזווה ושימורים", ["קורנפלקס","דגני","קרקר","שוקולד","נוגט","כריות","דליפקאן","ביסקוויט","חטיף","קמח","סוכר","שמן","אורז","פסטה","קטשופ","מיונז","טחינה","סילאן","דבש","ריבה","חומץ","שימור","טונה","קפה","מיץ","רוטב","תבלין"]],
+  ["🧼 ניקיון וחד-פעמי", ["סנו","אינסטלטור","סתימות","מגבונים","שקיות","שקית","ניילון","נייר","סבון","אקונומיקה","מטליות","צלחות","כוסות","מזלגות","כפיות","סכינים","חד פעמי","אשפה","ספוג"]],
+  ["🧴 טואלטיקה", ["דאודורנט","דיאודרנט","שמפו","משחת שיניים","מברשת","סבון","קרם","תחבושות"]],
+  ["✏️ כלי כתיבה וספרים", ["עיפרון","עפרונות","עט","פיילוט","שפיצים","מחברת","עטיפ","ספר","מספריים","דבק","טוש","צבע","גליל"]],
+];
+function categorize(items){
+  const groups = new Map();
+  for(const it of items){
+    let cat = "🛒 שונות";
+    outer: for(const [label,kws] of CATEGORIES){ for(const kw of kws){ if(it.name.includes(kw)){ cat=label; break outer; } } }
+    if(!groups.has(cat)) groups.set(cat,[]);
+    groups.get(cat).push(it);
+  }
+  const order = CATEGORIES.map(c=>c[0]).concat(["🛒 שונות"]);
+  return order.filter(c=>groups.has(c)).map(c=>({label:c, items:groups.get(c)}));
+}
+
+/* ----------------------------------- format ---------------------------------- */
+function fmtDate(s){ const d=new Date(String(s).replace(" ","T")); if(isNaN(d))return""; const p=n=>String(n).padStart(2,"0"); return p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear(); }
+function fmtTime(a,b){
+  const hm=s=>{ if(!s)return null; s=String(s);
+    const m=s.match(/^(\d{1,2}):(\d{2})/);
+    if(m && !/\d{4}-\d{2}-\d{2}/.test(s)){ const v=m[1].padStart(2,"0")+":"+m[2]; return v==="00:00"?null:v; }
+    const d=new Date(s.replace(" ","T")); if(isNaN(d))return null;
+    const v=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); return v==="00:00"?null:v; };
+  const x=hm(a),y=hm(b); if(x&&y)return x+"–"+y; return x||y||"";
+}
+const ACC_PALETTE = ["#4f2d8f","#b91c1c","#0e7490","#b45309","#9333ea"];
+function accColorMap(names){ const m={}; names.forEach((n,i)=>m[n]=ACC_PALETTE[i%ACC_PALETTE.length]); return m; }
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function trimNum(n){ return String(Math.round(Number(n)*100)/100); }
+function btoaUtf8(s){ return btoa(unescape(encodeURIComponent(s))).replace(/=+$/,"").replace(/\//g,"_"); }
+
+/* ------------------------------------ views ---------------------------------- */
+function loginScreen(error){
+  return '<div class="card">'
+    + '<h2>רשימת ליקוט · משנת יוסף</h2>'
+    + '<p>התחברו פעם אחת עם חשבון משנת יוסף שלכם, והאפליקציה תזכור אתכם ותכין רשימת תיוג מההזמנה הקרובה לאיסוף.</p>'
+    + (error ? '<div class="err">'+esc(error)+'</div>' : '')
+    + '<form autocomplete="on" onsubmit="return doLogin(event)">'
+    + '<label>אימייל</label><input name="email" type="email" inputmode="email" required placeholder="name@example.com">'
+    + '<label>סיסמה</label><input name="password" type="password" required placeholder="הסיסמה של משנת יוסף">'
+    + '<button class="btn" type="submit">התחברות</button>'
+    + '</form>'
+    + '<div class="note">🔒 הסיסמה נשלחת ישירות מהמכשיר שלכם למשנת יוסף ואינה עוברת בשום שרת אחר. נשמר רק אסימון גישה — במכשיר שלכם בלבד. פרטי תשלום לעולם אינם נקראים או מוצגים.</div>'
+    + '</div>';
+}
+
+function checklistScreen(merged, accs, expired){
+  const p = merged.pickup || {};
+  const pickupLine = [p.day?"יום "+p.day:"", p.date, p.time].filter(Boolean).join(" · ");
+  const colors = accColorMap(merged.accNames||[]);
+  const accChips = accs.map(a=>{
+    const c = colors[a.name||a.email];
+    const dot = c ? '<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+c+'"></i>' : "";
+    return '<span class="acc">'+dot+esc(a.name||a.email)+(a.expired?" ⚠️":"")
+      +'<button title="הסרה" onclick="removeAccount(\''+esc(a.email).replace(/'/g,"\\'")+'\')">×</button></span>';
+  }).join("");
+
+  const headMeta = [pickupLine, p.location?"📍 "+p.location:""].filter(Boolean).join(" · ");
+  let body = '<div class="printhead"><h1>'+esc(merged.saleName||"רשימת ליקוט")+'</h1>'
+    + (headMeta?'<div class="pmeta">'+esc(headMeta)+'</div>':'')
+    + (merged.multi?'<div class="pmeta">'+esc(merged.accNames.join(" · "))+'</div>':'')
+    + '</div>';
+
+  body += '<div class="top">'
+    + (merged.cats.length?'<button class="printbtn" onclick="window.print()">🖨️ הדפסה</button>':'')
+    + '<h1>🛒 '+esc(merged.saleName||"רשימת ליקוט")+'</h1>'
+    + '<div class="meta">'+(pickupLine?esc(pickupLine)+"<br>":"")+(p.location?"📍 "+esc(p.location):"")+'</div>'
+    + '<div class="bar"><i id="prog"></i></div><div class="barlbl" id="proglbl"></div>'
+    + '</div>'+(p.note?'<div class="stnote">ℹ️ '+esc(p.note)+'</div>':'');
+
+  body += '<div class="accbar">'+accChips+'</div>';
+
+  if(expired && expired.length){
+    body += '<div class="warn">⚠️ החיבור לחשבון <b>'+esc(expired.map(a=>a.name||a.email).join(", "))+'</b> פג. לחצו <b>➕ הוספת חשבון</b> והתחברו אליו שוב כדי לכלול אותו ברשימה.</div>';
+  }
+
+  if(!merged.cats.length){
+    body += '<div class="card"><h2>אין הזמנה לאיסוף</h2><p>לא נמצאה הזמנה קרובה לאיסוף בחשבון. ייתכן שכבר אספתם, או שטרם נפתחה הזמנה חדשה.</p></div>';
+  }else{
+    body += '<div class="filters">'
+      + '<button class="on" data-f="all" onclick="setFilter(\'all\',this)">הכל</button>'
+      + '<button data-f="todo" onclick="setFilter(\'todo\',this)">נותרו</button>'
+      + '<button data-f="done" onclick="setFilter(\'done\',this)">נלקטו ✓</button>'
+      + '</div><div id="banner"></div><div id="list">';
+    for(const cat of merged.cats){
+      body += '<div class="cat"><span>'+esc(cat.label)+'</span><span class="c"><span class="catdone" data-cat="'+esc(cat.label)+'">0</span>/'+cat.items.length+'</span></div>';
+      for(const it of cat.items) body += renderItem(it, merged.multi, cat.label, colors);
+    }
+    body += '</div>';
+  }
+
+  body += '<div class="addacc"><a onclick="showAdd()">➕ הוספת חשבון נוסף</a></div>'
+    + '<div class="card" id="addcard" style="display:none"><h2>הוספת חשבון</h2>'
+    + '<p>התחברו לחשבון נוסף כדי למזג את ההזמנות לרשימה אחת.</p>'
+    + '<form onsubmit="return doLogin(event)"><label>אימייל</label><input name="email" type="email" required>'
+    + '<label>סיסמה</label><input name="password" type="password" required>'
+    + '<button class="btn" type="submit">חיבור ומיזוג</button></form>'
+    + '<button class="btn sec" onclick="hideAdd()" style="margin-top:10px">ביטול</button></div>';
+  return body;
+}
+
+function renderItem(it, multi, cat, colors){
+  const accs = Object.entries(it.perAcc);
+  const key = btoaUtf8(it.name+"|"+accs.map(([n])=>n).join(","));
+  let qtyHtml = "";
+  if(it.weight) qtyHtml = "~"+trimNum(it.weight)+" ק״ג";
+  else if(it.total>1) qtyHtml = "×"+it.total;
+  let inlineTag="", blockTag="";
+  if(multi){
+    if(accs.length>1){
+      blockTag = '<div class="split">'+accs.map(([n,q])=>'<b style="color:'+(colors[n]||"var(--ink)")+'">'+esc(n)+" ×"+q+"</b>").join(" · ")+'</div>';
+    }else{
+      const n = accs[0][0], c = colors[n]||"var(--accent)";
+      inlineTag = ' <span class="atag" style="background:'+c+'1a;color:'+c+'">'+esc(n)+'</span>';
+    }
+  }
+  return '<div class="item" data-cat="'+esc(cat)+'" data-key="'+key+'" onclick="toggle(this)">'
+    + '<div class="box">✓</div>'
+    + '<div class="name">'+esc(it.name)+(it.attr?' <span class="tag">'+esc(it.attr)+'</span>':"")+inlineTag+blockTag+'</div>'
+    + (qtyHtml?'<div class="qty">'+esc(qtyHtml)+'</div>':"")
+    + '</div>';
+}
+
+/* --------------------------------- interactivity ----------------------------- */
+let checkState = {}, curFilter = "all", stateKey = "";
+
+function initChecklist(merged){
+  stateKey = "mlk_check_" + ((merged.pickup && merged.pickup.dateRaw) || merged.saleName || "x");
+  try{ checkState = JSON.parse(localStorage.getItem(stateKey)||"{}"); }catch(e){ checkState = {}; }
+  curFilter = "all";
+  applyChecklist();
+}
+function applyChecklist(){
+  const items = [...document.querySelectorAll(".item")];
+  let done = 0; const perCat = {};
+  items.forEach(el=>{
+    const k = el.dataset.key, c = el.dataset.cat;
+    perCat[c] = perCat[c] || {d:0,t:0}; perCat[c].t++;
+    const isDone = !!checkState[k];
+    el.classList.toggle("done", isDone);
+    if(isDone){ done++; perCat[c].d++; }
+    let show = true;
+    if(curFilter==="todo" && isDone) show = false;
+    if(curFilter==="done" && !isDone) show = false;
+    el.style.display = show ? "flex" : "none";
+  });
+  document.querySelectorAll(".catdone").forEach(s=>{ const c=s.dataset.cat; if(perCat[c]) s.textContent=perCat[c].d; });
+  const t = items.length, pct = t?Math.round(done/t*100):0;
+  const prog = document.getElementById("prog"); if(prog) prog.style.width = pct+"%";
+  const lbl = document.getElementById("proglbl"); if(lbl) lbl.textContent = done+" מתוך "+t+" נלקטו ("+pct+"%)";
+  const b = document.getElementById("banner"); if(b) b.innerHTML = (t && done===t) ? '<div class="done-banner">🎉 כל המוצרים נלקטו!</div>' : "";
+}
+function toggle(el){ const k = el.dataset.key; checkState[k] = !checkState[k]; if(!checkState[k]) delete checkState[k]; localStorage.setItem(stateKey, JSON.stringify(checkState)); applyChecklist(); }
+function setFilter(f, btn){ curFilter = f; document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); applyChecklist(); }
+function showAdd(){ const c=document.getElementById("addcard"); if(c){ c.style.display="block"; c.scrollIntoView({behavior:"smooth"}); } }
+function hideAdd(){ const c=document.getElementById("addcard"); if(c) c.style.display="none"; }
+
+function removeAccount(email){
+  accounts = loadAccounts().filter(a=>a.email !== email);
+  saveAccounts(accounts);
+  renderApp();
+}
+
+async function doLogin(ev){
+  ev.preventDefault();
+  const form = ev.target;
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  if(!email || !password) return false;
+  const btn = form.querySelector('button[type=submit]');
+  const orig = btn.textContent; btn.disabled = true; btn.textContent = "מתחבר…";
+  const auth = await apiLogin(email, password);
+  if(!auth){
+    btn.disabled = false; btn.textContent = orig;
+    let er = form.parentNode.querySelector(".err.live");
+    if(!er){ er = document.createElement("div"); er.className = "err live"; form.parentNode.insertBefore(er, form); }
+    er.textContent = "המייל או הסיסמה שגויים. נסו שוב.";
+    return false;
+  }
+  accounts = loadAccounts().filter(a=>a.email.toLowerCase() !== email.toLowerCase());
+  accounts.push({ email, name: auth.name || email, token: auth.token });
+  saveAccounts(accounts);
+  renderApp();
+  return false;
+}
+
+/* ------------------------------------- boot ---------------------------------- */
+async function renderApp(){
+  const app = document.getElementById("app");
+  accounts = loadAccounts();
+  if(!accounts.length){ app.innerHTML = loginScreen(); return; }
+
+  app.innerHTML = '<div class="loading">טוען את ההזמנה הקרובה…</div>';
+  const results = [];
+  let mutated = false;
+  for(const acc of accounts){
+    acc.expired = false; acc._refreshed = false;
+    let order = null;
+    try{ order = await fetchNearestOrder(acc); }catch(e){ order = null; }
+    if(acc._refreshed) mutated = true;
+    if(order === "AUTH"){ acc.expired = true; continue; }
+    if(order) results.push({ accName: acc.name || acc.email, order });
+  }
+  if(mutated) saveAccounts(accounts);
+
+  const expired = accounts.filter(a=>a.expired);
+  const merged = mergeOrders(results);
+  app.innerHTML = checklistScreen(merged, accounts, expired);
+  if(merged.cats.length) initChecklist(merged);
+}
+
+renderApp();
+</script>
+</body>
+</html>
