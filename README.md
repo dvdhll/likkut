@@ -19,6 +19,8 @@
 
 איך לוודא בעצמכם: פתחו את [`public/index.html`](public/index.html), חפשו את כל הקריאות ל-`fetch(` — תראו שכולן הולכות אך ורק אל `https://v2.mishnatyosef.org/api/...`, ולשום כתובת אחרת.
 
+**חריג יחיד — סטטיסטיקות שימוש:** הדף טוען beacon של [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) (`static.cloudflareinsights.com`) שסופר **כניסות ומבקרים בלבד**, באופן **מצטבר ואנונימי, ללא עוגיות וללא מידע אישי**. הוא אינו נוגע בפרטי ההתחברות, בטוקן או בהזמנות. זו הקריאה החיצונית היחידה מלבד ל-API של משנת יוסף.
+
 ---
 
 ## איך זה עובד
