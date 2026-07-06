@@ -189,9 +189,9 @@ async function fetchStation(acc){
 function parseOrder(detail){
   const sale = detail.sale || {};
   const products = (detail.order && detail.order.products) || [];
-  const items = products.filter(p=>!p.billing_product).map(p=>{
+  const items = products.filter(p=>!p.billing_product).map((p,i)=>{
     const byWeight = Number(p.units_type)===10 && Number(p.units)>0;
-    return { name: cleanName(p.full_name), attr: p.attribute_name||null, qty: Number(p.amount)||1, weight: byWeight?Number(p.units):null };
+    return { name: cleanName(p.full_name), attr: p.attribute_name||null, qty: Number(p.amount)||1, weight: byWeight?Number(p.units):null, ord: i };
   });
   const supply = sale.supply_begin || sale.begin || null;
   return {
@@ -225,37 +225,44 @@ function mergeOrders(results){
     for(const it of order.items){
       const key = normName(it.name).toLowerCase() || it.name.toLowerCase();
       let row = map.get(key);
-      if(!row){ row = {name:it.name, attr:it.attr, weight:it.weight, perAcc:{}, total:0}; map.set(key,row); }
+      if(!row){ row = {name:it.name, attr:it.attr, weight:it.weight, perAcc:{}, total:0, ord: (typeof it.ord==="number"?it.ord:9999)}; map.set(key,row); }
       row.perAcc[accName] = (row.perAcc[accName]||0) + it.qty;
       row.total += it.qty;
       if(it.weight) row.weight = it.weight;
+      if(typeof it.ord==="number" && it.ord < row.ord) row.ord = it.ord; // earliest site position
       if(it.name.length > row.name.length) row.name = it.name;
     }
   }
-  const items = [...map.values()];
-  return { pickup, saleName, cats: categorize(items), multi: results.length>1, accNames: results.map(r=>r.accName), count: items.length };
+  const items = [...map.values()].sort((a,b)=>a.ord-b.ord); // keep the site's own order
+  return { pickup, saleName, cats: buildSections(items), multi: results.length>1, accNames: results.map(r=>r.accName), count: items.length };
 }
 
-const CATEGORIES = [
-  ["🥦 ירקות ועלים", ["קישוא","סלק","חסה","סלרי","בצל","גזר","עגבני","מלפפון","פלפל","בטטה","תפוח אדמה","כרוב","פטרי","בזיליקום","פטרוזיל","כוסבר","שום","דלעת","חציל","צנון","תרד","כרישה","כרובית","ברוקולי"]],
-  ["🍎 פירות", ["תפוח","בננה","ענב","משמש","שזיף","אפרסק","נקטרינ","אגס","תות","מלון","אבטיח","תפוז","קלמנט","לימון","רימון","מנגו","אבוקדו","תמר","אגוז","שקד"]],
-  ["🥛 מוצרי חלב וביצים", ["יוגורט","חלב","גבינ","קוטג","שמנת","חמא","ביצי","לבן","תנובה","טרה"]],
-  ["🍞 מאפים ולחם", ["לחם","פיתות","לחמני","חלה","באגט","קרואסון","עוגי","עוגה","מאפה"]],
-  ["🥫 מזווה ושימורים", ["קורנפלקס","דגני","קרקר","שוקולד","נוגט","כריות","דליפקאן","ביסקוויט","חטיף","קמח","סוכר","שמן","אורז","פסטה","קטשופ","מיונז","טחינה","סילאן","דבש","ריבה","חומץ","שימור","טונה","קפה","מיץ","רוטב","תבלין"]],
-  ["🧼 ניקיון וחד-פעמי", ["סנו","אינסטלטור","סתימות","מגבונים","שקיות","שקית","ניילון","נייר","סבון","אקונומיקה","מטליות","צלחות","כוסות","מזלגות","כפיות","סכינים","חד פעמי","אשפה","ספוג"]],
-  ["🧴 טואלטיקה", ["דאודורנט","דיאודרנט","שמפו","משחת שיניים","מברשת","סבון","קרם","תחבושות"]],
-  ["✏️ כלי כתיבה וספרים", ["עיפרון","עפרונות","עט","פיילוט","שפיצים","מחברת","עטיפ","ספר","מספריים","דבק","טוש","צבע","גליל"]],
+// Broad buckets that mirror how the mishnat yosef site itself clusters items,
+// so the site's own order already falls into clean contiguous blocks.
+// Order matters: first keyword match wins (narrow/less-ambiguous buckets first).
+const CATS = [
+  ["🧊 קפואים", ["מוקפא","קפוא","מלאוח","גלידה","שלגון","ארטיק"]],
+  ["✏️ ניירת וכלי כתיבה", ["מחבר","עיפרון","עפרונ","פיילוט","שפיצ","ממו","עטיפ","שרינקי","טוש","מספריים","סרגל","מחק","קלמר","דבק","עט ","מדבק","דפדפ"]],
+  ["🧼 ניקיון וחד-פעמי", ["מרכך","כביסה","אקונומיקה","מגבונ","סבון","שמפו","ניקוי","מטליות","ספוג","נוזל כלים","אבקת","דאודורנט","משחת שיניים","טישו","גביע","צלחת","צלחות","כוסות","מזלג","כפיות","סכינ","נרות","מפית","מפיות","תבנית","סילפן","קשית","גליל","שקית","שקיות","חד פעמי","חד-פעמי","נייר טואלט","ניר טואלט"]],
+  ["💊 תוספי תזונה", ["ויטמין","תוסף","אומגה","מגנזיום","פרוביוט","סידן"]],
+  ["🥛 מוצרי חלב ושוקולד", ["חלב","גבינ","קוטג","שמנת","חמאה","יוגורט","מעדן","תנובה","טרה","סויה","שוקולד","ביצי","מילקי","דנונה"]],
+  ["🥤 יין ומיצים", ["יין","מיץ ענבים","מיץ"]],
+  ["🥦 ירקות, עלים ופירות", ["בטט","תפוח אדמה","כרוב","ברוקולי","כרובית","צנונ","קישוא","סלק","בצל","גזר","עגבני","מלפפון","פלפל","דלעת","חציל","בייבי שף","ראש כרוב","קולורבי","דלורית","במיה","סלסלא","פטרי","חסה","סלרי","פטרוזל","בזיליקום","נענע","כוסבר","שמיר","עלים","קצוצ","תפוח","בננה","ענב","משמש","שזיף","אפרסק","נקטרינ","אגס","תות","מלון","אבטיח","תפוז","קלמנט","לימון","רימון","מנגו","אבוקדו","תמר","אפרסמון"]],
+  ["🫙 מזווה ויבשים", ["שמן","פסטה","אורז","קמח","סוכר","טחינה","מלח","סולת","קוסקוס","חומץ","שמרים","ריבה","סילאן","דבש","קטשופ","מיונז","רוטב","תבלין","קפה","זית","שימור","טונה","חומוס","קטני","אפונ","עדשים","גרגר","לחם","פיתות","לחמני","חלה","באגט","קרקר","פירורי","דגני","קורנפלקס","גרעינ","ביסקוויט","חטיף","וופל","ופל","נשנוש","במבה","ביסלי","נוגט","סוכריי","מסטיק","קרמבו","עוגי","עוגה","מאפה","שקד","אגוז","פיצוח","גרנולה"]],
 ];
-function categorize(items){
-  const groups = new Map();
-  for(const it of items){
-    let cat = "🛒 שונות";
-    outer: for(const [label,kws] of CATEGORIES){ for(const kw of kws){ if(it.name.includes(kw)){ cat=label; break outer; } } }
-    if(!groups.has(cat)) groups.set(cat,[]);
-    groups.get(cat).push(it);
+function classify(n){ for(const [label,kws] of CATS){ for(const kw of kws){ if(n.includes(kw)) return label; } } return "🛒 שונות"; }
+
+// Keep the site's order, but detect category blocks and label them.
+function buildSections(items){
+  if(!items.length) return [];
+  const lab = items.map(it=>({it, c:classify(normName(it.name))})); // strip {..}/[..]/(..) annotations before classifying
+  // smoothing: absorb a lone item whose category differs from two identical neighbours
+  for(let i=1;i<lab.length-1;i++){
+    if(lab[i].c!==lab[i-1].c && lab[i].c!==lab[i+1].c && lab[i-1].c===lab[i+1].c) lab[i].c = lab[i-1].c;
   }
-  const order = CATEGORIES.map(c=>c[0]).concat(["🛒 שונות"]);
-  return order.filter(c=>groups.has(c)).map(c=>({label:c, items:groups.get(c)}));
+  const sections=[]; let cur=null;
+  for(const {it,c} of lab){ if(!cur || cur.label!==c){ cur={label:c, items:[]}; sections.push(cur); } cur.items.push(it); }
+  return sections;
 }
 
 /* ----------------------------------- format ---------------------------------- */
@@ -328,10 +335,10 @@ function checklistScreen(merged, accs, expired){
       + '<button data-f="todo" onclick="setFilter(\'todo\',this)">נותרו</button>'
       + '<button data-f="done" onclick="setFilter(\'done\',this)">נלקטו ✓</button>'
       + '</div><div id="banner"></div><div id="list">';
-    for(const cat of merged.cats){
-      body += '<div class="cat"><span>'+esc(cat.label)+'</span><span class="c"><span class="catdone" data-cat="'+esc(cat.label)+'">0</span>/'+cat.items.length+'</span></div>';
-      for(const it of cat.items) body += renderItem(it, merged.multi, cat.label, colors);
-    }
+    merged.cats.forEach((cat, si)=>{
+      body += '<div class="cat"><span>'+esc(cat.label)+'</span><span class="c"><span class="catdone" data-sec="'+si+'">0</span>/'+cat.items.length+'</span></div>';
+      for(const it of cat.items) body += renderItem(it, merged.multi, si, colors);
+    });
     body += '</div>';
   }
 
@@ -345,7 +352,7 @@ function checklistScreen(merged, accs, expired){
   return body;
 }
 
-function renderItem(it, multi, cat, colors){
+function renderItem(it, multi, sec, colors){
   const accs = Object.entries(it.perAcc);
   const key = btoaUtf8(it.name+"|"+accs.map(([n])=>n).join(","));
   const qtyParts = [];
@@ -361,7 +368,7 @@ function renderItem(it, multi, cat, colors){
       inlineTag = ' <span class="atag" style="background:'+c+'1a;color:'+c+'">'+esc(n)+'</span>';
     }
   }
-  return '<div class="item" data-cat="'+esc(cat)+'" data-key="'+key+'" onclick="toggle(this)">'
+  return '<div class="item" data-sec="'+sec+'" data-key="'+key+'" onclick="toggle(this)">'
     + '<div class="box">✓</div>'
     + '<div class="name">'+esc(it.name)+(it.attr?' <span class="tag">'+esc(it.attr)+'</span>':"")+inlineTag+blockTag+'</div>'
     + (qtyHtml?'<div class="qty">'+esc(qtyHtml)+'</div>':"")
@@ -379,19 +386,19 @@ function initChecklist(merged){
 }
 function applyChecklist(){
   const items = [...document.querySelectorAll(".item")];
-  let done = 0; const perCat = {};
+  let done = 0; const perSec = {};
   items.forEach(el=>{
-    const k = el.dataset.key, c = el.dataset.cat;
-    perCat[c] = perCat[c] || {d:0,t:0}; perCat[c].t++;
+    const k = el.dataset.key, sec = el.dataset.sec;
+    perSec[sec] = perSec[sec] || {d:0,t:0}; perSec[sec].t++;
     const isDone = !!checkState[k];
     el.classList.toggle("done", isDone);
-    if(isDone){ done++; perCat[c].d++; }
+    if(isDone){ done++; perSec[sec].d++; }
     let show = true;
     if(curFilter==="todo" && isDone) show = false;
     if(curFilter==="done" && !isDone) show = false;
     el.style.display = show ? "flex" : "none";
   });
-  document.querySelectorAll(".catdone").forEach(s=>{ const c=s.dataset.cat; if(perCat[c]) s.textContent=perCat[c].d; });
+  document.querySelectorAll(".catdone").forEach(s=>{ const k=s.dataset.sec; if(perSec[k]) s.textContent=perSec[k].d; });
   const t = items.length, pct = t?Math.round(done/t*100):0;
   const prog = document.getElementById("prog"); if(prog) prog.style.width = pct+"%";
   const lbl = document.getElementById("proglbl"); if(lbl) lbl.textContent = done+" מתוך "+t+" נלקטו ("+pct+"%)";
