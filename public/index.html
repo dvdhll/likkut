@@ -348,9 +348,10 @@ function checklistScreen(merged, accs, expired){
 function renderItem(it, multi, cat, colors){
   const accs = Object.entries(it.perAcc);
   const key = btoaUtf8(it.name+"|"+accs.map(([n])=>n).join(","));
-  let qtyHtml = "";
-  if(it.weight) qtyHtml = "~"+trimNum(it.weight)+" ק״ג";
-  else if(it.total>1) qtyHtml = "×"+it.total;
+  const qtyParts = [];
+  if(it.total>1) qtyParts.push("×"+it.total);      // how many units — always show when >1
+  if(it.weight) qtyParts.push("~"+trimNum(it.weight)+" ק״ג");
+  const qtyHtml = qtyParts.join(" · ");
   let inlineTag="", blockTag="";
   if(multi){
     if(accs.length>1){
