@@ -490,6 +490,7 @@ function isIOSDevice(){ return /iPhone|iPad|iPod/i.test(ua()) || (navigator.plat
 function isInAppBrowser(){ return /\bwv\b|FBAN|FBAV|Instagram|Line\/|MicroMessenger|GSA\/|Twitter|TikTok|Snapchat|Pinterest/i.test(ua()); }
 function isAndroidChrome(){ const u=ua(); return /Android/i.test(u) && /Chrome\//i.test(u) && !/\bwv\b|SamsungBrowser|EdgA|OPR\/|Firefox|UCBrowser|MiuiBrowser|HuaweiBrowser/i.test(u); }
 function isIOSSafari(){ return isIOSDevice() && /Safari/i.test(ua()) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|\bwv\b/i.test(ua()); }
+function isWrappedApp(){ return /LikkutNative|median|gonative/i.test(ua()); } // already inside our APK — no install UI
 const SHARE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ishare" style="color:var(--accent)" aria-hidden="true"><path d="M12 15V4"/><path d="M8.5 7.5 12 4l3.5 3.5"/><path d="M8 10H6.5A2.5 2.5 0 0 0 4 12.5v6A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-6A2.5 2.5 0 0 0 17.5 10H16"/></svg>';
 function installGuidance(){
   if(isIOSDevice()){
@@ -503,7 +504,7 @@ function installGuidance(){
 function refreshInstall(){
   const box = document.getElementById("install-box");
   if(!box) return;
-  if(isStandalone()){ box.innerHTML=""; return; }
+  if(isStandalone() || isWrappedApp()){ box.innerHTML=""; return; }
   const head = '<img class="ic-ico" src="/icon.svg" alt=""><h3>📲 התקנת האפליקציה</h3>';
   if(deferredPrompt){
     box.innerHTML = '<div class="installcard">'+head+'<p>גישה מהירה ממסך הבית, כמו אפליקציה רגילה.</p><button class="instbtn" id="instbtn">התקנה</button></div>';
