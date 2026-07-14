@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>רשימת ליקוט · משנת יוסף</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4f2d8f">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ליקוט">
 <style>
 :root{--bg:#f4f3f8;--card:#fff;--ink:#241b3a;--muted:#7a7390;--accent:#4f2d8f;--accent2:#6c3fc5;--done:#16a34a;--savta:#b91c1c;--line:#ece8f4;}
 *{box-sizing:border-box}
@@ -56,6 +64,14 @@ input:focus{outline:none;border-color:var(--accent2)}
 .legal p{margin:0 0 7px}
 .legal .lishkod{margin-top:12px;font-size:12.5px;color:var(--ink)}
 .legal a{color:var(--accent);font-weight:700;text-decoration:none}
+#install-box:empty{display:none}
+.installcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:26px;box-shadow:0 2px 12px rgba(0,0,0,.06);text-align:center}
+.installcard .ic-ico{width:44px;height:44px;border-radius:12px;display:block;margin:0 auto 8px}
+.installcard h3{margin:0 0 6px;color:var(--accent);font-size:16px}
+.installcard p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.7}
+.installcard p b{color:var(--ink)}
+.installcard .instbtn{margin-top:13px;padding:11px 22px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+.installcard .ishare{vertical-align:-3px;margin:0 1px}
 .printbtn{position:absolute;top:14px;inset-inline-end:16px;background:rgba(255,255,255,.22);color:#fff;border:0;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer}
 .printbtn:hover{background:rgba(255,255,255,.34)}
 .printhead{display:none}
@@ -63,7 +79,7 @@ input:focus{outline:none;border-color:var(--accent2)}
   @page{margin:11mm}
   body{background:#fff;color:#000}
   .wrap{max-width:100%;padding:0}
-  .top,.filters,.accbar,.addacc,#addcard,.stnote,.legal,.warn,#banner,.printbtn{display:none!important}
+  .top,.filters,.accbar,.addacc,#addcard,.stnote,.legal,.warn,#banner,.printbtn,#install-box{display:none!important}
   .printhead{display:block;text-align:center;margin:0 0 10px;border-bottom:2px solid #000;padding-bottom:8px}
   .printhead h1{font-size:19px;margin:0 0 3px}
   .printhead .pmeta{font-size:12.5px;color:#000}
@@ -83,6 +99,7 @@ input:focus{outline:none;border-color:var(--accent2)}
 <body>
 <div class="wrap">
   <div id="app"><div class="loading">טוען…</div></div>
+  <div id="install-box"></div>
   <div class="legal">
     <p>יישומון זה איננו מפותח על ידי "משנת יוסף" ואינו באחריותה.</p>
     <p>היישומון מיועד לליקוט המוצרים בלבד. הזמנה מתבצעת דרך <a href="https://mishnatyosef.org/login" target="_blank" rel="noopener">אתר משנת יוסף</a> הרשמי.</p>
@@ -464,7 +481,44 @@ async function renderApp(){
   if(merged.cats.length) initChecklist(merged);
 }
 
+/* ----------------------- install-to-home-screen (PWA) ------------------------ */
+let deferredPrompt = null;
+function ua(){ return navigator.userAgent||""; }
+function isStandalone(){ return matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }
+function isMobileDevice(){ return matchMedia("(pointer:coarse)").matches || /Android|iPhone|iPad|iPod/i.test(ua()); }
+function isIOSDevice(){ return /iPhone|iPad|iPod/i.test(ua()) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1); }
+function isInAppBrowser(){ return /\bwv\b|FBAN|FBAV|Instagram|Line\/|MicroMessenger|GSA\/|Twitter|TikTok|Snapchat|Pinterest/i.test(ua()); }
+function isAndroidChrome(){ const u=ua(); return /Android/i.test(u) && /Chrome\//i.test(u) && !/\bwv\b|SamsungBrowser|EdgA|OPR\/|Firefox|UCBrowser|MiuiBrowser|HuaweiBrowser/i.test(u); }
+function isIOSSafari(){ return isIOSDevice() && /Safari/i.test(ua()) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|\bwv\b/i.test(ua()); }
+const SHARE_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ishare" style="color:var(--accent)" aria-hidden="true"><path d="M12 15V4"/><path d="M8.5 7.5 12 4l3.5 3.5"/><path d="M8 10H6.5A2.5 2.5 0 0 0 4 12.5v6A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-6A2.5 2.5 0 0 0 17.5 10H16"/></svg>';
+function installGuidance(){
+  if(isIOSDevice()){
+    if(isIOSSafari()) return 'להתקנה: הקישו על כפתור השיתוף '+SHARE_SVG+' שבתחתית המסך, ואז <b>״הוסף למסך הבית״</b>.';
+    return 'כדי להתקין, פִתחו את <b>likkut.pages.dev</b> בדפדפן <b>Safari</b> ← כפתור השיתוף '+SHARE_SVG+' ← <b>״הוסף למסך הבית״</b>.';
+  }
+  if(isInAppBrowser()) return 'אתם גולשים בתוך אפליקציה אחרת. פִתחו את <b>likkut.pages.dev</b> ב-<b>Chrome</b> (תפריט ⋮ ← ״פתח ב-Chrome״) והתקינו משם.';
+  if(!isAndroidChrome()) return 'להתקנה קבועה, פִתחו את <b>likkut.pages.dev</b> ב-<b>Chrome</b> והתקינו משם.';
+  return 'להתקנה: פִתחו את תפריט הדפדפן (⋮) ובחרו <b>״התקנת אפליקציה״</b> / <b>״הוסף למסך הבית״</b>.';
+}
+function refreshInstall(){
+  const box = document.getElementById("install-box");
+  if(!box) return;
+  if(isStandalone()){ box.innerHTML=""; return; }
+  const head = '<img class="ic-ico" src="/icon.svg" alt=""><h3>📲 התקנת האפליקציה</h3>';
+  if(deferredPrompt){
+    box.innerHTML = '<div class="installcard">'+head+'<p>גישה מהירה ממסך הבית, כמו אפליקציה רגילה.</p><button class="instbtn" id="instbtn">התקנה</button></div>';
+    document.getElementById("instbtn").onclick = async ()=>{ deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt=null; refreshInstall(); };
+    return;
+  }
+  if(!isMobileDevice()){ box.innerHTML=""; return; } // don't nag desktop when it can't install
+  box.innerHTML = '<div class="installcard">'+head+'<p>'+installGuidance()+'</p></div>';
+}
+addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt=e; refreshInstall(); });
+addEventListener("appinstalled", ()=>{ deferredPrompt=null; refreshInstall(); });
+if("serviceWorker" in navigator){ addEventListener("load", ()=>navigator.serviceWorker.register("/sw.js").catch(()=>{})); }
+
 renderApp();
+refreshInstall();
 </script>
 <!-- Cloudflare Web Analytics — aggregate, cookieless, no personal data -->
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "95dbefb43b9e4b58b7a5db84ac29c212"}'></script>

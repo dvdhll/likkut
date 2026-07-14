@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#5a34a6"/>
+  <!-- tote bag body -->
+  <path d="M176 214 h160 a16 16 0 0 1 16 17 l-12 150 a22 22 0 0 1 -22 19 H194 a22 22 0 0 1 -22 -19 l-12 -150 a16 16 0 0 1 16 -17 Z" fill="#ffffff"/>
+  <!-- bag handles -->
+  <path d="M206 218 v-14 a50 50 0 0 1 100 0 v14" fill="none" stroke="#ffffff" stroke-width="17" stroke-linecap="round"/>
+  <!-- check mark -->
+  <path d="M212 302 l30 32 l58 -74" fill="none" stroke="#5a34a6" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
