@@ -36,10 +36,12 @@ body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color
 .item.done{opacity:.6}
 .name{flex:1;font-size:15px;line-height:1.35}
 .qty{font-weight:700;font-size:15px;white-space:nowrap}
-.split{font-size:12px;color:var(--muted);margin-top:2px}
+.split{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 14px}
 .split b{color:var(--ink)}
+.split .acq{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink)}
 .tag{display:inline-block;background:#fdecec;color:var(--savta);font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-inline-start:6px}
-.atag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+.adot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.name .adot{margin-inline-start:6px;vertical-align:-1px}
 .done-banner{text-align:center;background:#dcfce7;color:#166534;font-weight:700;border-radius:14px;padding:16px;margin:14px 0}
 .card{background:var(--card);border-radius:18px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.07);margin-top:30px}
 .card h2{margin:0 0 6px;color:var(--accent)}
@@ -377,13 +379,15 @@ function renderItem(it, multi, sec, colors){
   if(it.total>1) qtyParts.push("×"+it.total);      // how many units — always show when >1
   if(it.weight) qtyParts.push("~"+trimNum(it.weight)+" ק״ג");
   const qtyHtml = qtyParts.join(" · ");
+  // account attribution as compact colour dots (names shown once, in the top legend)
   let inlineTag="", blockTag="";
   if(multi){
+    const dot = n => '<i class="adot" style="background:'+(colors[n]||"var(--accent)")+'"></i>';
     if(accs.length>1){
-      blockTag = '<div class="split">'+accs.map(([n,q])=>'<b style="color:'+(colors[n]||"var(--ink)")+'">'+esc(n)+" ×"+q+"</b>").join(" · ")+'</div>';
+      // same item across several accounts → per-account dot + quantity
+      blockTag = '<div class="split">'+accs.map(([n,q])=>'<span class="acq">'+dot(n)+'×'+q+'</span>').join("")+'</div>';
     }else{
-      const n = accs[0][0], c = colors[n]||"var(--accent)";
-      inlineTag = ' <span class="atag" style="background:'+c+'1a;color:'+c+'">'+esc(n)+'</span>';
+      inlineTag = ' '+dot(accs[0][0]); // belongs to one account → just its colour dot
     }
   }
   return '<div class="item" data-sec="'+sec+'" data-key="'+key+'" onclick="toggle(this)">'
