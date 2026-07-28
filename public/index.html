@@ -23,7 +23,10 @@ body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color
 .top .meta{font-size:13px;opacity:.92;line-height:1.5}
 .bar{height:8px;background:rgba(255,255,255,.25);border-radius:99px;margin-top:12px;overflow:hidden}
 .bar>i{display:block;height:100%;background:#fff;width:0;transition:width .3s}
-.barlbl{font-size:12px;opacity:.92;margin-top:5px}
+.barrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px}
+.barlbl{font-size:12px;opacity:.92}
+.clearbtn{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:9px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;flex:0 0 auto}
+.clearbtn:hover{background:rgba(255,255,255,.32)}
 .filters{display:flex;gap:8px;margin:14px 0}
 .filters button{flex:1;padding:9px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font-size:14px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
 .filters button.on{background:var(--accent);color:#fff}
@@ -40,8 +43,7 @@ body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color
 .split b{color:var(--ink)}
 .split .acq{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink)}
 .tag{display:inline-block;background:#fdecec;color:var(--savta);font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-inline-start:6px}
-.adot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:0 0 auto}
-.name .adot{margin-inline-start:6px;vertical-align:-1px}
+.atag{display:inline-block;font-size:11.5px;font-weight:700;color:var(--accent);background:#efeaf8;border-radius:6px;padding:1px 8px;margin-inline-start:6px;vertical-align:middle;white-space:nowrap}
 .done-banner{text-align:center;background:#dcfce7;color:#166534;font-weight:700;border-radius:14px;padding:16px;margin:14px 0}
 .card{background:var(--card);border-radius:18px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.07);margin-top:30px}
 .card h2{margin:0 0 6px;color:var(--accent)}
@@ -211,7 +213,9 @@ function parseOrder(detail){
   const products = (detail.order && detail.order.products) || [];
   const items = products.filter(p=>!p.billing_product).map((p,i)=>{
     const byWeight = Number(p.units_type)===10 && Number(p.units)>0;
-    return { name: cleanName(p.full_name), attr: p.attribute_name||null, qty: Number(p.amount)||1, weight: byWeight?Number(p.units):null, ord: i };
+    // ord = item_salesID: a per-SALE global key, identical across accounts for the same product
+    // and monotonic with the store's shelf order (falls back to array index if absent).
+    return { name: cleanName(p.full_name), attr: p.attribute_name||null, qty: Number(p.amount)||1, weight: byWeight?Number(p.units):null, ord: (p.item_salesID!=null?p.item_salesID:i) };
   });
   const supply = sale.supply_begin || sale.begin || null;
   return {
@@ -235,6 +239,8 @@ function extractLocation(sale, detail){
 /* ------------------------------- merge / categorize -------------------------- */
 function normName(n){ return String(n||"").replace(/\{[^}]*\}/g,"").replace(/\[[^\]]*\]/g,"").replace(/\([^)]*\)/g,"").replace(/\s+/g," ").trim(); }
 function cleanName(n){ return String(n||"").replace(/\s+/g," ").trim(); }
+// short, distinguishing label for an account = the part after the comma ("הלל, דוד ומניה" → "דוד ומניה")
+function shortName(n){ n=String(n||""); const i=n.lastIndexOf(","); const s=(i>=0?n.slice(i+1):n).trim(); return s||n; }
 
 function mergeOrders(results){
   const map = new Map();
@@ -253,8 +259,19 @@ function mergeOrders(results){
       if(it.name.length > row.name.length) row.name = it.name;
     }
   }
-  const items = [...map.values()].sort((a,b)=>a.ord-b.ord); // keep the site's own order
-  return { pickup, saleName, cats: buildSections(items), multi: results.length>1, accNames: results.map(r=>r.accName), count: items.length };
+  const items = [...map.values()].sort((a,b)=>a.ord-b.ord); // ordered by the store's shelf key
+  // single account → keep the store's order with block headers; merged → group by category
+  // (each category once), robust to classifier noise. Items stay shelf-ordered within a group.
+  const cats = results.length>1 ? groupByCategory(items) : buildSections(items);
+  return { pickup, saleName, cats, multi: results.length>1, accNames: results.map(r=>r.accName), count: items.length };
+}
+
+// Display order of category groups (merged lists).
+const CAT_ORDER = ["🥦 ירקות, עלים ופירות","🥛 מוצרי חלב ושוקולד","🫙 מזווה ויבשים","🥤 יין ומיצים","🧊 קפואים","💊 תוספי תזונה","🧼 ניקיון וחד-פעמי","✏️ ניירת וכלי כתיבה","🛒 שונות"];
+function groupByCategory(items){ // items already sorted by ord
+  const g = new Map();
+  for(const it of items){ const c = classify(normName(it.name)); if(!g.has(c)) g.set(c,[]); g.get(c).push(it); }
+  return CAT_ORDER.filter(c=>g.has(c)).map(c=>({label:c, items:g.get(c)}));
 }
 
 // Broad buckets that mirror how the mishnat yosef site itself clusters items,
@@ -263,12 +280,12 @@ function mergeOrders(results){
 const CATS = [
   ["🧊 קפואים", ["מוקפא","קפוא","מלאוח","גלידה","שלגון","ארטיק"]],
   ["✏️ ניירת וכלי כתיבה", ["מחבר","עיפרון","עפרונ","פיילוט","שפיצ","ממו","עטיפ","שרינקי","טוש","מספריים","סרגל","מחק","קלמר","דבק","עט ","מדבק","דפדפ"]],
-  ["🧼 ניקיון וחד-פעמי", ["מרכך","כביסה","אקונומיקה","מגבונ","סבון","שמפו","ניקוי","מטליות","ספוג","נוזל כלים","אבקת","דאודורנט","משחת שיניים","טישו","גביע","צלחת","צלחות","כוסות","מזלג","כפיות","סכינ","נרות","מפית","מפיות","תבנית","סילפן","קשית","גליל","שקית","שקיות","חד פעמי","חד-פעמי","נייר טואלט","ניר טואלט"]],
+  ["🧼 ניקיון וחד-פעמי", ["מרכך","כביסה","אקונומיקה","מגבונ","סבון","שמפו","ניקוי","מטליות","ספוג","נוזל כלים","אבקת","דאודורנט","משחת שיניים","טישו","גביעי אחסון","צלחת","צלחות","כוסות","מזלג","כפיות","סכינ","נרות","מפית","מפיות","תבנית","סילפן","קשית","גליל","שקית","שקיות","חד פעמי","חד-פעמי","נייר טואלט","ניר טואלט","נייר אפייה","כפית","כף שקופ","סכין","קרם ידיים","בקבוק שתייה"]],
   ["💊 תוספי תזונה", ["ויטמין","תוסף","אומגה","מגנזיום","פרוביוט","סידן"]],
   ["🥛 מוצרי חלב ושוקולד", ["חלב","גבינ","קוטג","שמנת","חמאה","יוגורט","מעדן","תנובה","טרה","סויה","שוקולד","ביצי","מילקי","דנונה"]],
   ["🥤 יין ומיצים", ["יין","מיץ ענבים","מיץ"]],
-  ["🥦 ירקות, עלים ופירות", ["בטט","תפוח אדמה","כרוב","ברוקולי","כרובית","צנונ","קישוא","סלק","בצל","גזר","עגבני","מלפפון","פלפל","דלעת","חציל","בייבי שף","ראש כרוב","קולורבי","דלורית","במיה","סלסלא","פטרי","חסה","סלרי","פטרוזל","בזיליקום","נענע","כוסבר","שמיר","עלים","קצוצ","תפוח","בננה","ענב","משמש","שזיף","אפרסק","נקטרינ","אגס","תות","מלון","אבטיח","תפוז","קלמנט","לימון","רימון","מנגו","אבוקדו","תמר","אפרסמון"]],
-  ["🫙 מזווה ויבשים", ["שמן","פסטה","אורז","קמח","סוכר","טחינה","מלח","סולת","קוסקוס","חומץ","שמרים","ריבה","סילאן","דבש","קטשופ","מיונז","רוטב","תבלין","קפה","זית","שימור","טונה","חומוס","קטני","אפונ","עדשים","גרגר","לחם","פיתות","לחמני","חלה","באגט","קרקר","פירורי","דגני","קורנפלקס","גרעינ","ביסקוויט","חטיף","וופל","ופל","נשנוש","במבה","ביסלי","נוגט","סוכריי","מסטיק","קרמבו","עוגי","עוגה","מאפה","שקד","אגוז","פיצוח","גרנולה"]],
+  ["🥦 ירקות, עלים ופירות", ["בטט","תפוח אדמה","כרוב","ברוקולי","כרובית","צנונ","קישוא","סלק","בצל","גזר","עגבני","מלפפון","פלפל","דלעת","חציל","בייבי שף","ראש כרוב","קולורבי","דלורית","במיה","סלסלא","פטרי","חסה","סלרי","פטרוזל","בזיליקום","נענע","כוסבר","שמיר","עלים","קצוצ","תפוח","בננה","ענב","משמש","שזיף","אפרסק","נקטרינ","אגס","תות שדה","תותים","מלון","אבטיח","תפוז","קלמנט","לימון","רימון","מנגו","אבוקדו","תמר","אפרסמון","דובדב"]],
+  ["🫙 מזווה ויבשים", ["שמן","פסטה","אורז","קמח","סוכר","טחינה","מלח","סולת","קוסקוס","חומץ","שמרים","ריבה","סילאן","דבש","קטשופ","מיונז","רוטב","תבלין","קפה","זית","שימור","טונה","חומוס","קטני","אפונ","עדשים","גרגר","לחם","פיתות","לחמני","חלה","באגט","קרקר","פירורי","דגני","קורנפלקס","גרעינ","ביסקוויט","חטיף","וופל","ופל","נשנוש","במבה","ביסלי","נוגט","סוכריי","מסטיק","קרמבו","עוגי","עוגה","מאפה","שקד","אגוז","פיצוח","גרנולה","פפריקה","פרכיות","פריכיות","קצפת","ממרח","דליפקאן"]],
 ];
 function classify(n){ for(const [label,kws] of CATS){ for(const kw of kws){ if(n.includes(kw)) return label; } } return "🛒 שונות"; }
 
@@ -322,9 +339,7 @@ function checklistScreen(merged, accs, expired){
   const pickupLine = [p.day?"יום "+p.day:"", p.date, p.time].filter(Boolean).join(" · ");
   const colors = accColorMap(merged.accNames||[]);
   const accChips = accs.map(a=>{
-    const c = colors[a.name||a.email];
-    const dot = c ? '<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+c+'"></i>' : "";
-    return '<span class="acc">'+dot+esc(a.name||a.email)+(a.expired?" ⚠️":"")
+    return '<span class="acc">'+esc(a.name||a.email)+(a.expired?" ⚠️":"")
       +'<button title="הסרה" onclick="removeAccount(\''+esc(a.email).replace(/'/g,"\\'")+'\')">×</button></span>';
   }).join("");
 
@@ -338,7 +353,9 @@ function checklistScreen(merged, accs, expired){
     + (merged.cats.length?'<button class="printbtn" onclick="window.print()">🖨️ הדפסה</button>':'')
     + '<h1>🛒 '+esc(merged.saleName||"רשימת ליקוט")+'</h1>'
     + '<div class="meta">'+(pickupLine?esc(pickupLine)+"<br>":"")+(p.location?"📍 "+esc(p.location):"")+'</div>'
-    + '<div class="bar"><i id="prog"></i></div><div class="barlbl" id="proglbl"></div>'
+    + '<div class="bar"><i id="prog"></i></div>'
+    + '<div class="barrow"><span class="barlbl" id="proglbl"></span>'
+    + (merged.cats.length?'<button class="clearbtn" onclick="clearChecks()">↺ איפוס סימונים</button>':'')+'</div>'
     + '</div>'+(p.note?'<div class="stnote">ℹ️ '+esc(p.note)+'</div>':'');
 
   body += '<div class="accbar">'+accChips+'</div>';
@@ -379,20 +396,16 @@ function renderItem(it, multi, sec, colors){
   if(it.total>1) qtyParts.push("×"+it.total);      // how many units — always show when >1
   if(it.weight) qtyParts.push("~"+trimNum(it.weight)+" ק״ג");
   const qtyHtml = qtyParts.join(" · ");
-  // account attribution as compact colour dots (names shown once, in the top legend)
-  let inlineTag="", blockTag="";
+  // account attribution as a small, bold line under the name (same style for one or many)
+  let blockTag="";
   if(multi){
-    const dot = n => '<i class="adot" style="background:'+(colors[n]||"var(--accent)")+'"></i>';
-    if(accs.length>1){
-      // same item across several accounts → per-account dot + quantity
-      blockTag = '<div class="split">'+accs.map(([n,q])=>'<span class="acq">'+dot(n)+'×'+q+'</span>').join("")+'</div>';
-    }else{
-      inlineTag = ' '+dot(accs[0][0]); // belongs to one account → just its colour dot
-    }
+    blockTag = accs.length>1
+      ? '<div class="split">'+accs.map(([n,q])=>'<span class="acq">'+esc(shortName(n))+' ×'+q+'</span>').join("")+'</div>'
+      : '<div class="split"><span class="acq">'+esc(shortName(accs[0][0]))+'</span></div>';
   }
   return '<div class="item" data-sec="'+sec+'" data-key="'+key+'" onclick="toggle(this)">'
     + '<div class="box">✓</div>'
-    + '<div class="name">'+esc(it.name)+(it.attr?' <span class="tag">'+esc(it.attr)+'</span>':"")+inlineTag+blockTag+'</div>'
+    + '<div class="name">'+esc(it.name)+(it.attr?' <span class="tag">'+esc(it.attr)+'</span>':"")+blockTag+'</div>'
     + (qtyHtml?'<div class="qty">'+esc(qtyHtml)+'</div>':"")
     + '</div>';
 }
@@ -427,6 +440,7 @@ function applyChecklist(){
   const b = document.getElementById("banner"); if(b) b.innerHTML = (t && done===t) ? '<div class="done-banner">🎉 כל המוצרים נלקטו!</div>' : "";
 }
 function toggle(el){ const k = el.dataset.key; checkState[k] = !checkState[k]; if(!checkState[k]) delete checkState[k]; localStorage.setItem(stateKey, JSON.stringify(checkState)); applyChecklist(); }
+function clearChecks(){ if(Object.keys(checkState).length && !confirm("לנקות את כל הסימונים ולהתחיל את הליקוט מחדש?")) return; checkState = {}; localStorage.setItem(stateKey, "{}"); applyChecklist(); }
 function setFilter(f, btn){ curFilter = f; document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); applyChecklist(); }
 function showAdd(){ const c=document.getElementById("addcard"); if(c){ c.style.display="block"; c.scrollIntoView({behavior:"smooth"}); } }
 function hideAdd(){ const c=document.getElementById("addcard"); if(c) c.style.display="none"; }
