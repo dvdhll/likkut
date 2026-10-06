@@ -27,9 +27,17 @@ body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color
 .barlbl{font-size:12px;opacity:.92}
 .clearbtn{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:9px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;flex:0 0 auto}
 .clearbtn:hover{background:rgba(255,255,255,.32)}
-.filters{display:flex;gap:8px;margin:14px 0}
+.toolbar{display:flex;gap:8px;align-items:center;margin:14px 0 0}
+.searchbox{flex:1;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.searchbox:focus{outline:none;border-color:var(--accent2)}
+.viewtoggle{display:flex;flex:0 0 auto;background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.viewtoggle button{border:0;background:transparent;color:var(--muted);font-size:13.5px;font-weight:700;padding:10px 14px;cursor:pointer}
+.viewtoggle button.on{background:var(--accent);color:#fff}
+.filters{display:flex;gap:8px;margin:10px 0 0}
 .filters button{flex:1;padding:9px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font-size:14px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
 .filters button.on{background:var(--accent);color:#fff}
+.acchead{display:flex;align-items:center;gap:7px;font-weight:800;font-size:16px;color:var(--ink);background:#efeaf8;border-radius:12px;padding:10px 14px;margin:18px 0 6px}
+.noresults{text-align:center;color:var(--muted);padding:26px 0;font-size:15px}
 .cat{margin:14px 0 8px;font-weight:700;font-size:15px;color:var(--accent);display:flex;justify-content:space-between;align-items:center}
 .cat .c{font-size:12px;color:var(--muted);font-weight:500}
 .item{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.05);cursor:pointer;min-height:52px;transition:opacity .2s}
@@ -83,7 +91,8 @@ input:focus{outline:none;border-color:var(--accent2)}
   @page{margin:11mm}
   body{background:#fff;color:#000}
   .wrap{max-width:100%;padding:0}
-  .top,.filters,.accbar,.addacc,#addcard,.stnote,.legal,.warn,#banner,.printbtn,#install-box{display:none!important}
+  .top,.toolbar,.filters,.accbar,.addacc,#addcard,.stnote,.legal,.warn,#banner,.printbtn,#install-box,#noresults{display:none!important}
+  .acchead{background:#fff;border:0;border-bottom:2px solid #000;border-radius:0;font-size:16px;padding:6px 0;margin:10px 0 4px;break-inside:avoid}
   .printhead{display:block;text-align:center;margin:0 0 10px;border-bottom:2px solid #000;padding-bottom:8px}
   .printhead h1{font-size:19px;margin:0 0 3px}
   .printhead .pmeta{font-size:12.5px;color:#000}
@@ -334,7 +343,7 @@ function loginScreen(error){
     + '</div>';
 }
 
-function checklistScreen(merged, accs, expired){
+function checklistScreen(merged, accs, expired, results){
   const p = merged.pickup || {};
   const pickupLine = [p.day?"יום "+p.day:"", p.date, p.time].filter(Boolean).join(" · ");
   const colors = accColorMap(merged.accNames||[]);
@@ -367,16 +376,16 @@ function checklistScreen(merged, accs, expired){
   if(!merged.cats.length){
     body += '<div class="card"><h2>אין הזמנה לאיסוף</h2><p>לא נמצאה הזמנה קרובה לאיסוף בחשבון. ייתכן שכבר אספתם, או שטרם נפתחה הזמנה חדשה.</p></div>';
   }else{
+    const multiAcc = (results && results.length>1);
+    body += '<div class="toolbar">'
+      + '<input id="search" class="searchbox" type="search" placeholder="🔍 חיפוש מוצר…" oninput="onSearch(this.value)" autocomplete="off">'
+      + (multiAcc ? '<div class="viewtoggle"><button class="'+(viewMode==="unified"?"on":"")+'" onclick="setView(\'unified\')">מאוחד</button><button class="'+(viewMode==="separate"?"on":"")+'" onclick="setView(\'separate\')">נפרד</button></div>' : '')
+      + '</div>';
     body += '<div class="filters">'
       + '<button class="on" data-f="all" onclick="setFilter(\'all\',this)">הכל</button>'
       + '<button data-f="todo" onclick="setFilter(\'todo\',this)">נותרו</button>'
       + '<button data-f="done" onclick="setFilter(\'done\',this)">נלקטו ✓</button>'
-      + '</div><div id="banner"></div><div id="list">';
-    merged.cats.forEach((cat, si)=>{
-      body += '<div class="cat"><span>'+esc(cat.label)+'</span><span class="c"><span class="catdone" data-sec="'+si+'">0</span>/'+cat.items.length+'</span></div>';
-      for(const it of cat.items) body += renderItem(it, merged.multi, si, colors);
-    });
-    body += '</div>';
+      + '</div><div id="banner"></div><div id="list">'+renderList(merged, results)+'</div>';
   }
 
   body += '<div class="addacc"><a onclick="showAdd()">➕ הוספת חשבון נוסף</a></div>'
@@ -389,29 +398,93 @@ function checklistScreen(merged, accs, expired){
   return body;
 }
 
-function renderItem(it, multi, sec, colors){
+function renderItem(it, multi, sec, blk){
   const accs = Object.entries(it.perAcc);
-  const key = btoaUtf8(it.name+"|"+accs.map(([n])=>n).join(","));
+  const key = btoaUtf8(it.name+"|"+accs.map(([n])=>n).join(",")+"|"+(blk||0));
   const qtyParts = [];
   if(it.total>1) qtyParts.push("×"+it.total);      // how many units — always show when >1
   if(it.weight) qtyParts.push("~"+trimNum(it.weight)+" ק״ג");
   const qtyHtml = qtyParts.join(" · ");
-  // account attribution as a small, bold line under the name (same style for one or many)
+  // account attribution: only in the UNIFIED multi-account view (separate view has an account heading)
   let blockTag="";
   if(multi){
     blockTag = accs.length>1
       ? '<div class="split">'+accs.map(([n,q])=>'<span class="acq">'+esc(shortName(n))+' ×'+q+'</span>').join("")+'</div>'
       : '<div class="split"><span class="acq">'+esc(shortName(accs[0][0]))+'</span></div>';
   }
-  return '<div class="item" data-sec="'+sec+'" data-key="'+key+'" onclick="toggle(this)">'
+  return '<div class="item" data-sec="'+sec+'" data-blk="'+(blk||0)+'" data-name="'+esc(it.name)+'" data-key="'+key+'" onclick="toggle(this)">'
     + '<div class="box">✓</div>'
     + '<div class="name">'+esc(it.name)+(it.attr?' <span class="tag">'+esc(it.attr)+'</span>':"")+blockTag+'</div>'
     + (qtyHtml?'<div class="qty">'+esc(qtyHtml)+'</div>':"")
     + '</div>';
 }
 
+// Build the #list inner HTML for the current view mode (unified = merged.cats; separate = per-account blocks)
+function renderList(merged, results){
+  let html = '<div id="noresults" class="noresults" style="display:none">לא נמצאו פריטים התואמים לחיפוש</div>';
+  let sec = 0;
+  const useSeparate = viewMode==="separate" && results && results.length>1;
+  if(useSeparate){
+    results.forEach((r, blk)=>{
+      const rows = r.order.items.map(it=>({ name:it.name, attr:it.attr, weight:it.weight, total:it.qty, perAcc:{[r.accName]:it.qty}, ord:it.ord }))
+                               .sort((a,b)=>a.ord-b.ord);
+      html += '<div class="acchead" data-blk="'+blk+'">👤 '+esc(r.accName)+'</div>';
+      for(const cat of buildSections(rows)){
+        html += catHeader(cat, sec);
+        for(const it of cat.items) html += renderItem(it, false, sec, blk); // no per-item name — heading covers it
+        sec++;
+      }
+    });
+  }else{
+    for(const cat of merged.cats){
+      html += catHeader(cat, sec);
+      for(const it of cat.items) html += renderItem(it, merged.multi, sec, 0);
+      sec++;
+    }
+  }
+  return html;
+}
+function catHeader(cat, sec){
+  return '<div class="cat" data-sec="'+sec+'"><span>'+esc(cat.label)+'</span><span class="c"><span class="catdone" data-sec="'+sec+'">0</span>/'+cat.items.length+'</span></div>';
+}
+
 /* --------------------------------- interactivity ----------------------------- */
-let checkState = {}, curFilter = "all", stateKey = "";
+let checkState = {}, curFilter = "all", stateKey = "", searchQuery = "";
+let viewMode = (function(){ try{ return localStorage.getItem("mlk_view")||"unified"; }catch(e){ return "unified"; } })();
+
+// ---- smart Hebrew search: normalize (niqqud, finals, annotations, punctuation) + fuzzy ----
+const FINALS = {"ך":"כ","ם":"מ","ן":"נ","ף":"פ","ץ":"צ"};
+function normS(s){
+  return String(s||"")
+    .replace(/[֑-ׇ]/g,"")                     // niqqud / te'amim
+    .replace(/["'׳״’‘`]/g,"")                            // drop gershayim/quotes (חו"ל→חול, ג'מבו→גמבו) — don't split
+    .replace(/[^א-תa-z0-9 ]/gi," ")            // brackets/punct → space, keep the inner words ({לנדא}→לנדא) so they ARE searchable
+    .replace(/[ךםןףץ]/g,c=>FINALS[c])                    // final letters → regular
+    .toLowerCase().replace(/\s+/g," ").trim();
+}
+// confusable letters (substitution is "free" in the fuzzy distance):
+// ו↔י = כתיב מלא/חסר (matres lectionis); ו↔נ = keyboard u/i adjacency (ו↔ן, after final-norm ן→נ)
+const CONF = {"ו":"וינ","י":"יו","נ":"נו"};
+function conf(a,b){ return a===b || (CONF[a]!==undefined && CONF[a].indexOf(b)>=0); }
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m)return n; if(!n)return m;
+  let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){ cur[0]=i;
+    for(let j=1;j<=n;j++){ cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(conf(a[i-1],b[j-1])?0:1)); }
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n];
+}
+function matchSearch(name, q){
+  if(!q) return true;
+  const N=normS(name), Q=normS(q); if(!Q) return true;
+  if(N.replace(/ /g,"").includes(Q.replace(/ /g,""))) return true;   // partial / contiguous substring
+  // per-word fuzzy: prefix/substring, or confusable-aware edit distance (handles yod/vav/nun typos + כתיב)
+  const qt=Q.split(" ").filter(Boolean), nt=N.split(" ").filter(Boolean);
+  return qt.every(t => nt.some(w => w.includes(t) || (t.length>=3 && lev(w,t) <= (t.length>=6?2:1))));
+}
+function onSearch(v){ searchQuery=v; applyChecklist(); }
+function setView(m){ viewMode=m; try{ localStorage.setItem("mlk_view",m); }catch(e){} renderView(); }
 
 function initChecklist(merged){
   stateKey = "mlk_check_" + ((merged.pickup && merged.pickup.dateRaw) || merged.saleName || "x");
@@ -421,19 +494,27 @@ function initChecklist(merged){
 }
 function applyChecklist(){
   const items = [...document.querySelectorAll(".item")];
-  let done = 0; const perSec = {};
+  let done = 0; const perSec = {}, visSec = {}, visBlk = {};
   items.forEach(el=>{
-    const k = el.dataset.key, sec = el.dataset.sec;
-    perSec[sec] = perSec[sec] || {d:0,t:0}; perSec[sec].t++;
+    const k = el.dataset.key, sec = el.dataset.sec, blk = el.dataset.blk;
+    perSec[sec] = perSec[sec] || {d:0};
     const isDone = !!checkState[k];
     el.classList.toggle("done", isDone);
     if(isDone){ done++; perSec[sec].d++; }
     let show = true;
     if(curFilter==="todo" && isDone) show = false;
     if(curFilter==="done" && !isDone) show = false;
+    if(searchQuery && !matchSearch(el.dataset.name, searchQuery)) show = false;
     el.style.display = show ? "flex" : "none";
+    if(show){ visSec[sec]=(visSec[sec]||0)+1; visBlk[blk]=(visBlk[blk]||0)+1; }
   });
-  document.querySelectorAll(".catdone").forEach(s=>{ const k=s.dataset.sec; if(perSec[k]) s.textContent=perSec[k].d; });
+  // per-category done count, and hide section headers with nothing visible
+  document.querySelectorAll(".cat").forEach(c=>{ const k=c.dataset.sec; const cd=c.querySelector(".catdone"); if(cd&&perSec[k]) cd.textContent=perSec[k].d; c.style.display = visSec[k] ? "flex" : "none"; });
+  // hide account headings (separate view) with nothing visible
+  document.querySelectorAll(".acchead").forEach(h=>{ h.style.display = visBlk[h.dataset.blk] ? "flex" : "none"; });
+  const noResults = document.getElementById("noresults");
+  const anyVisible = items.some(el=>el.style.display!=="none");
+  if(noResults) noResults.style.display = (items.length && !anyVisible) ? "block" : "none";
   const t = items.length, pct = t?Math.round(done/t*100):0;
   const prog = document.getElementById("prog"); if(prog) prog.style.width = pct+"%";
   const lbl = document.getElementById("proglbl"); if(lbl) lbl.textContent = done+" מתוך "+t+" נלקטו ("+pct+"%)";
@@ -495,8 +576,17 @@ async function renderApp(){
 
   const expired = accounts.filter(a=>a.expired);
   const merged = mergeOrders(results);
-  app.innerHTML = checklistScreen(merged, accounts, expired);
-  if(merged.cats.length) initChecklist(merged);
+  __view = { merged, results, accounts, expired };
+  renderView();
+}
+let __view = null;
+// re-render the list for the current viewMode, from cached data (no re-fetch) — used by the מאוחד/נפרד toggle
+function renderView(){
+  if(!__view) return;
+  const { merged, results, accounts, expired } = __view;
+  const keepSearch = searchQuery;
+  document.getElementById("app").innerHTML = checklistScreen(merged, accounts, expired, results);
+  if(merged.cats.length){ initChecklist(merged); if(keepSearch){ const s=document.getElementById("search"); if(s){ s.value=keepSearch; searchQuery=keepSearch; applyChecklist(); } } }
 }
 
 /* ----------------------- install-to-home-screen (PWA) ------------------------ */
